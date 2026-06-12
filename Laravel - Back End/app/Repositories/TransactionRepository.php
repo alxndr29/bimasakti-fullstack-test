@@ -28,7 +28,9 @@ class TransactionRepository extends BaseRepository implements TransactionInterfa
     ) {
         $model = $this->model->query();
 
-        $model->select('transactions.*');
+        $model
+            ->leftJoin('providers', 'providers.id', '=', 'transactions.provider_id')
+            ->select('transactions.*', 'providers.provider as provider');
 
         if (! empty($withRelations)) {
             $model->with($withRelations);
@@ -43,13 +45,7 @@ class TransactionRepository extends BaseRepository implements TransactionInterfa
         });
 
         if ($this->filled($filter, 'providerId')) {
-            $provider = Provider::find($filter['providerId']);
-
-            if ($provider) {
-                $model->where('provider', $provider->provider);
-            } else {
-                $model->whereRaw('1 = 0');
-            }
+            $model->where('provider_id', $filter['providerId']);
         }
 
         if ($this->filled($filter, 'status')) {
@@ -58,6 +54,7 @@ class TransactionRepository extends BaseRepository implements TransactionInterfa
 
         $sortableColumns = [
             'trx_id',
+            'provider_id',
             'provider',
             'product',
             'status',
@@ -70,7 +67,7 @@ class TransactionRepository extends BaseRepository implements TransactionInterfa
             ? 'asc'
             : 'desc';
 
-        $model->orderBy($sortBy, $sortOrder);
+        $model->orderBy($sortBy === 'provider' ? 'providers.provider' : "transactions.{$sortBy}", $sortOrder);
 
         $length = $this->input($paginateOption, 'length', 10);
         if (strtolower($this->input($paginateOption, 'method', 'paginate'))) {
@@ -99,8 +96,13 @@ class TransactionRepository extends BaseRepository implements TransactionInterfa
             'failed' => $this->model->where('status', 'FAILED')->count(),
             'total_amount' => $this->model->sum('amount'),
             'per_provider' => $this->model
-                ->select('provider', DB::raw('count(*) as total'))
-                ->groupBy('provider')
+                ->query()
+                ->leftJoin('providers', 'providers.id', '=', 'transactions.provider_id')
+                ->select(
+                    'providers.provider',
+                    DB::raw('count(*) as total'),
+                )
+                ->groupBy('providers.provider')
                 ->orderByDesc('total')
                 ->get(),
         ];
@@ -119,10 +121,15 @@ class TransactionRepository extends BaseRepository implements TransactionInterfa
     public function syncRows(array $rows)
     {
         foreach ($rows as $row) {
+            $provider = Provider::firstOrCreate(
+                ['provider' => $row['provider']],
+                ['fee_percent' => 0],
+            );
+
             $this->model->updateOrCreate(
                 ['trx_id' => $row['trx_id']],
                 [
-                    'provider' => $row['provider'],
+                    'provider_id' => $provider->id,
                     'product' => $row['product'],
                     'status' => $row['status'],
                     'amount' => $row['amount'],

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Model;
 
 class Transaction extends Model
@@ -9,8 +10,8 @@ class Transaction extends Model
     protected $table = 'transactions';
 
     protected $fillable = [
+        'provider_id',
         'trx_id',
-        'provider',
         'product',
         'status',
         'amount',
@@ -22,4 +23,9 @@ class Transaction extends Model
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    public function provider(): BelongsTo
+    {
+        return $this->belongsTo(Provider::class, 'provider_id');
+    }
 }

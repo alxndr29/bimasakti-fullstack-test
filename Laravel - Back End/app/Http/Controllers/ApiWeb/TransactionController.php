@@ -141,8 +141,8 @@ class TransactionController extends Controller
         $providers = $providerResult['success'] ? ($providerResult['data']['data'] ?? []) : [];
 
         DB::transaction(function () use ($rows, $providers) {
-            $this->transactionRepository->syncRows($rows);
             $this->providerRepository->upsertProviders($providers);
+            $this->transactionRepository->syncRows($rows);
         });
 
         return ResponseFormatter::success(

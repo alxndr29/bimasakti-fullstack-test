@@ -4,7 +4,6 @@ namespace App\Repositories;
 
 use App\Interfaces\ProviderInterface;
 use App\Models\Provider;
-use App\Models\Transaction;
 
 class ProviderRepository extends BaseRepository implements ProviderInterface
 {
@@ -15,8 +14,6 @@ class ProviderRepository extends BaseRepository implements ProviderInterface
 
     public function filterOptions()
     {
-        $this->syncFromTransactions();
-
         return $this->model
             ->select('id', 'provider')
             ->orderBy('provider')
@@ -25,16 +22,7 @@ class ProviderRepository extends BaseRepository implements ProviderInterface
 
     public function syncFromTransactions()
     {
-        return Transaction::select('provider')
-            ->whereNotNull('provider')
-            ->distinct()
-            ->pluck('provider')
-            ->map(function (string $provider) {
-                return $this->model->firstOrCreate(
-                    ['provider' => $provider],
-                    ['fee_percent' => 0],
-                );
-            });
+        return collect();
     }
 
     public function upsertProviders(array $providers)

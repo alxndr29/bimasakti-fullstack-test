@@ -15,8 +15,8 @@ return new class extends Migration
     {
         Schema::create('transactions', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('provider_id')->constrained('providers')->restrictOnDelete();
             $table->string('trx_id')->unique();
-            $table->string('provider');
             $table->string('product');
             $table->string('status');
             $table->decimal('amount', 15, 2)->default(0);
