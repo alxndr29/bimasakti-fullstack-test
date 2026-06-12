@@ -301,15 +301,15 @@
                             <div class="d-flex align-items-center gap-2 gap-lg-3">
                                 <select
                                     class="form-select form-select-solid form-select-sm"
-                                    v-model="filterProvider"
+                                    v-model="filterProviderId"
                                 >
                                     <option value="">All Providers</option>
                                     <option
                                         v-for="provider in providerList"
-                                        :key="provider"
-                                        :value="provider"
+                                        :key="provider.id"
+                                        :value="provider.id"
                                     >
-                                        {{ provider }}
+                                        {{ provider.provider }}
                                     </option>
                                 </select>
                                 <select
@@ -370,11 +370,8 @@ import { showLoading, hideLoading } from "@/utils/loading";
 
 declare const ApexCharts: any;
 
-const providerList = ["TELKOMSEL", "XL", "INDOSAT", "TRI", "SMARTFREN"];
-const statusList = ["SUCCESS", "FAILED", "PENDING"];
-
 const search = ref("");
-const filterProvider = ref("");
+const filterProviderId = ref("");
 const filterStatus = ref("");
 const reloadKey = ref(0);
 
@@ -390,9 +387,20 @@ const columns = [
 
 const filters = computed(() => ({
     search: search.value,
-    provider: filterProvider.value,
+    providerId: filterProviderId.value,
     status: filterStatus.value,
 }));
+
+const { data: filterData, refetch: refetchFilters } = useQuery({
+    queryKey: ["transaction-filters"],
+    queryFn: async () => {
+        const { data } = await customApi.get("/api-web/transaction/filters");
+        return data.data;
+    },
+});
+
+const providerList = computed(() => filterData.value?.providers ?? []);
+const statusList = computed(() => filterData.value?.statuses ?? []);
 
 // Summary cards & chart data
 const { data: summaryData, refetch: refetchSummary } = useQuery({
@@ -482,6 +490,7 @@ const syncMutation = useMutation({
             successMessage: "Sinkronisasi data berhasil",
         });
         refetchSummary();
+        refetchFilters();
         reloadKey.value++;
     },
     onError: (err) => {

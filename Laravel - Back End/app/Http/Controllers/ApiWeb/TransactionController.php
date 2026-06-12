@@ -4,15 +4,19 @@ namespace App\Http\Controllers\ApiWeb;
 
 use App\Helpers\ResponseFormatter;
 use App\Http\Controllers\Controller;
-use App\Models\Provider;
-use App\Models\Transaction;
+use App\Interfaces\ProviderInterface;
+use App\Interfaces\TransactionInterface;
 use App\Services\TransactionApiService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Str;
 
 class TransactionController extends Controller
 {
+    public function __construct(
+        private TransactionInterface $transactionRepository,
+        private ProviderInterface $providerRepository,
+    ) {}
+
     /**
      * @OA\Get(
      *   tags={"ApiWeb|Transaction"},
@@ -24,9 +28,9 @@ class TransactionController extends Controller
      *     @OA\Schema(type="string")
      *   ),
      *   @OA\Parameter(
-     *     name="provider",
+     *     name="providerId",
      *     in="query",
-     *     @OA\Schema(type="string")
+     *     @OA\Schema(type="integer")
      *   ),
      *   @OA\Parameter(
      *     name="status",
@@ -63,32 +67,21 @@ class TransactionController extends Controller
             'limit' => 'nullable|numeric|min:0|max:100',
         ]);
 
-        $query = Transaction::query();
-
-        if ($request->filled('search')) {
-            $query->where('trx_id', 'ILIKE', '%'.$request->search.'%');
-        }
-
-        if ($request->filled('provider')) {
-            $query->where('provider', $request->provider);
-        }
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-
-        $sortableColumns = ['trx_id', 'provider', 'product', 'status', 'amount', 'created_at'];
-        $sortBy = Str::snake((string) $request->sort_by);
-        $sortBy = in_array($sortBy, $sortableColumns) ? $sortBy : 'created_at';
-        $sortOrder = strtolower((string) $request->sort_order) === 'asc' ? 'asc' : 'desc';
-
-        $query->orderBy($sortBy, $sortOrder);
-
-        $transactions = $query->paginate(
-            $request->limit ?: 10,
-            ['*'],
-            'page',
-            $request->page ?: 1,
+        $transactions = $this->transactionRepository->getAll(
+            filter: [
+                'providerId' => $request->input('provider_id', $request->input('providerId')),
+                'status' => $request->status,
+            ],
+            search: $request->search,
+            sortOption: [
+                'orderCol' => $request->sort_by,
+                'orderDir' => $request->sort_order,
+            ],
+            paginateOption: [
+                'method' => 'paginate',
+                'length' => $request->limit,
+                'page' => $request->page,
+            ],
         );
 
         return ResponseFormatter::success($transactions, 'Data berhasil ditampilkan');
@@ -104,23 +97,10 @@ class TransactionController extends Controller
      */
     public function summary()
     {
-        $total = Transaction::count();
-        $success = Transaction::where('status', 'SUCCESS')->count();
-        $failed = Transaction::where('status', 'FAILED')->count();
-        $totalAmount = Transaction::sum('amount');
-
-        $perProvider = Transaction::select('provider', DB::raw('count(*) as total'))
-            ->groupBy('provider')
-            ->orderByDesc('total')
-            ->get();
-
-        return ResponseFormatter::success([
-            'total' => $total,
-            'success' => $success,
-            'failed' => $failed,
-            'total_amount' => $totalAmount,
-            'per_provider' => $perProvider,
-        ], 'Data berhasil ditampilkan');
+        return ResponseFormatter::success(
+            $this->transactionRepository->summary(),
+            'Data berhasil ditampilkan',
+        );
     }
 
     /**
@@ -133,16 +113,9 @@ class TransactionController extends Controller
      */
     public function filters()
     {
-        $providers = Provider::orderBy('provider')->pluck('provider');
-
-        $statuses = Transaction::select('status')
-            ->distinct()
-            ->orderBy('status')
-            ->pluck('status');
-
         return ResponseFormatter::success([
-            'providers' => $providers,
-            'statuses' => $statuses,
+            'providers' => $this->providerRepository->filterOptions(),
+            'statuses' => $this->transactionRepository->statuses(),
         ], 'Data berhasil ditampilkan');
     }
 
@@ -168,25 +141,8 @@ class TransactionController extends Controller
         $providers = $providerResult['success'] ? ($providerResult['data']['data'] ?? []) : [];
 
         DB::transaction(function () use ($rows, $providers) {
-            foreach ($rows as $row) {
-                Transaction::updateOrCreate(
-                    ['trx_id' => $row['trx_id']],
-                    [
-                        'provider' => $row['provider'],
-                        'product' => $row['product'],
-                        'status' => $row['status'],
-                        'amount' => $row['amount'],
-                        'created_at' => $row['created_at'],
-                    ],
-                );
-            }
-
-            foreach ($providers as $provider) {
-                Provider::updateOrCreate(
-                    ['provider' => $provider['provider']],
-                    ['fee_percent' => $provider['fee_percent']],
-                );
-            }
+            $this->transactionRepository->syncRows($rows);
+            $this->providerRepository->upsertProviders($providers);
         });
 
         return ResponseFormatter::success(

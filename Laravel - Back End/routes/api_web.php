@@ -22,6 +22,10 @@ Route::group(["middleware" => ["auth:sanctum"]], function () {
             ApiWeb\TransactionController::class,
             "summary",
         ]);
+        Route::get("/filters", [
+            ApiWeb\TransactionController::class,
+            "filters",
+        ]);
         Route::post("/sync", [ApiWeb\TransactionController::class, "sync"]);
     });
 
