@@ -70,7 +70,7 @@ http://localhost:8000/api/documentation
 Gunakan akun berikut untuk login:
 
 * Username: `administrator`
-* Password: `12345678`
+* Password: `123456`
 
 ---
 

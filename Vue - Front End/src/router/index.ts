@@ -5,7 +5,7 @@ import Register from "@/views/auth/Register.vue";
 import DefaultLayout from "@/layouts/DefaultLayout.vue";
 import Error404 from "@/views/error/Error404.vue";
 import { useAuthStore } from "@/store/auth";
-import IndexMasterProduct from "@/views/master/product/Index.vue";
+import TransactionDashboard from "@/views/transaction/dashboard/Index.vue";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -26,9 +26,13 @@ const router = createRouter({
       meta: { requiresAuth: true },
       children: [
         {
-          path: "master/product",
-          name: "masterProduct",
-          component: IndexMasterProduct,
+          path: "",
+          redirect: { name: "transactionDashboard" },
+        },
+        {
+          path: "transaction/dashboard",
+          name: "transactionDashboard",
+          component: TransactionDashboard,
         },
       ],
     },
@@ -48,7 +52,7 @@ router.beforeEach(async (to, from, next) => {
     }
   }
   if ((to.name === "login" || to.name === "register") && auth.isAuthenticated) {
-    return next({ name: "dashboard" });
+    return next({ name: "transactionDashboard" });
   }
   next();
 });

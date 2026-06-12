@@ -167,7 +167,7 @@ const AuthMutation = useMutation({
         swalApiResponse(res, {
             successMessage: "Login berhasil",
         });
-        router.push({ name: "masterProduct" });
+        router.push({ name: "transactionDashboard" });
     },
     onError: (err) => {
         swalApiResponse(err);

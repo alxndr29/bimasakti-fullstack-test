@@ -14,27 +14,48 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
-Route::group(['middleware' => ['auth:sanctum']], function () {
+Route::group(["middleware" => ["auth:sanctum"]], function () {
+    // Transaction
+    Route::group(["prefix" => "transaction"], function () {
+        Route::get("/", [ApiWeb\TransactionController::class, "index"]);
+        Route::get("/summary", [
+            ApiWeb\TransactionController::class,
+            "summary",
+        ]);
+        Route::post("/sync", [ApiWeb\TransactionController::class, "sync"]);
+    });
+
     // Master
-    Route::group(['prefix' => 'master'], function () {
-        // User
-        Route::group(['prefix' => 'user'], function () {
-            Route::get('/', [ApiWeb\MasterUserController::class, 'index'])->middleware(['role:admin']);
-            Route::post('/', [ApiWeb\MasterUserController::class, 'store'])->middleware(['role:admin']);
-            Route::get('/{id}', [ApiWeb\MasterUserController::class, 'show'])->middleware(['role:admin'])->whereUuid('id');
-            Route::put('/{id}', [ApiWeb\MasterUserController::class, 'update'])->middleware(['role:admin'])->whereUuid('id');
-            Route::put('/{id}/change-status', [ApiWeb\MasterUserController::class, 'changeStatus'])->middleware(['role:admin'])->whereUuid('id');
-            Route::put('/{id}/reset-password', [ApiWeb\MasterUserController::class, 'resetPassword'])->middleware(['role:admin'])->whereUuid('id');
-        });
+    Route::group(["prefix" => "master"], function () {
         // Product
-        Route::group(['prefix' => 'product'], function () {
-            Route::get('/', [ApiWeb\MasterProductController::class, 'index'])->middleware(['role:admin']);
-            Route::post('/', [ApiWeb\MasterProductController::class, 'store'])->middleware(['role:admin']);
-            Route::get('/category', [ApiWeb\MasterProductController::class, 'getCategory'])->middleware(['role:admin']);
-            Route::get('/{id}', [ApiWeb\MasterProductController::class, 'show'])->middleware(['role:admin'])->whereUuid('id');
-            Route::post('/{id}/update', [ApiWeb\MasterProductController::class, 'update'])->middleware(['role:admin'])->whereUuid('id');
-            Route::delete('/{id}', [ApiWeb\MasterProductController::class, 'delete'])->middleware(['role:admin'])->whereUuid('id');
-           
+        Route::group(["prefix" => "product"], function () {
+            Route::get("/", [
+                ApiWeb\MasterProductController::class,
+                "index",
+            ])->middleware(["role:admin"]);
+            Route::post("/", [
+                ApiWeb\MasterProductController::class,
+                "store",
+            ])->middleware(["role:admin"]);
+            Route::get("/category", [
+                ApiWeb\MasterProductController::class,
+                "getCategory",
+            ])->middleware(["role:admin"]);
+            Route::get("/{id}", [ApiWeb\MasterProductController::class, "show"])
+                ->middleware(["role:admin"])
+                ->whereUuid("id");
+            Route::post("/{id}/update", [
+                ApiWeb\MasterProductController::class,
+                "update",
+            ])
+                ->middleware(["role:admin"])
+                ->whereUuid("id");
+            Route::delete("/{id}", [
+                ApiWeb\MasterProductController::class,
+                "delete",
+            ])
+                ->middleware(["role:admin"])
+                ->whereUuid("id");
         });
     });
 });

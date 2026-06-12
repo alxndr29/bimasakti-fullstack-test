@@ -43,4 +43,9 @@ return [
         'redirect' => env('GOOGLE_REDIRECT'),
     ],
 
+    'transaction_api' => [
+        'base_url' => env('TRANSACTION_API_BASE_URL'),
+        'secret' => env('TRANSACTION_API_SECRET'),
+    ],
+
 ];
