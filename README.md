@@ -1,5 +1,4 @@
-# Repository untuk Soal Test Happy Puppy
-
+# Repository untuk Soal Test FullStack Bimasakti
 ## 📌 Requirement
 
 Pastikan environment sudah terinstall:
